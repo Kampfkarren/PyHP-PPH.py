@@ -34,6 +34,9 @@ def literal():
 def expression():
 	return [literal, function_call]
 
+def statement():
+	return [function_call]
+
 # WARN: A specification for expression lists has not been set. For all I know, it could end up being separated by fucking greek commas.
 #		...please don't do that.
 def expression_list():
@@ -41,16 +44,18 @@ def expression_list():
 
 # WARN: A specification for calling has not been set, but is implied from example code.
 def function_call():
-	return symbol, "(", expression_list, ");"
+	return symbol, "(", Optional(expression_list), ");"
 
 def language():
-	return ZeroOrMore(expression), EOF
+	return ZeroOrMore(statement), EOF
 
 # TODO: Include line numbers and positions in exceptions.
 class PyHP_PPH_Visitor(PTNodeVisitor):
 	def __init__(self, **kwargs):
 		super().__init__(kwargs)
 
+		# There is absolutely no reason we should need a stack, but Arpeggio kept fucking up expression lists.
+		self.stack = []
 		self.scopes = [builtins]
 
 	def find_variable(self, variable_name):
@@ -71,8 +76,7 @@ class PyHP_PPH_Visitor(PTNodeVisitor):
 		return self.find_variable(node.value)[node.value]
 
 	def visit_function_call(self, node, children):
-		print(children)
-		pass
+		print(node, children)
 
 def pyhpp_run_string(code):
 	parser = ParserPython(language, ws="\n\r ")
