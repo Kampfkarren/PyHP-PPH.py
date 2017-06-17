@@ -32,12 +32,12 @@ def literal():
 	return [number]
 
 def expression():
-	return [literal, function_call], _(r"([ \n]+)?")
+	return [literal, function_call]
 
 # WARN: A specification for expression lists has not been set. For all I know, it could end up being separated by fucking greek commas.
 #		...please don't do that.
 def expression_list():
-	return expression, ZeroOrMore(_(r",\s*"), expression)
+	return expression, ZeroOrMore(",", expression)
 
 # WARN: A specification for calling has not been set, but is implied from example code.
 def function_call():
@@ -75,7 +75,7 @@ class PyHP_PPH_Visitor(PTNodeVisitor):
 		pass
 
 def pyhpp_run_string(code):
-	parser = ParserPython(language, skipws=False)
+	parser = ParserPython(language, ws="\n\r ")
 	parse_tree = parser.parse(code)
 	
 	visit_parse_tree(parse_tree, PyHP_PPH_Visitor())
