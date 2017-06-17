@@ -8,6 +8,11 @@ Be warned that once an official addition is made, temporary functions WILL be de
 This does not support templating.
 """
 
+# PyHP++# specific
+from _builtins import builtins
+from exception import PyHP_PPH_Exception
+from number import PyHP_PPH_Number
+
 # Stuff for parser
 from arpeggio import *
 from arpeggio import RegExMatch as _
@@ -22,34 +27,58 @@ def symbol():
 def number():
 	return _(r"\d*\.\d*|\d+")
 
-# TODO: String support.
+# TODO: String support when the spec is finished.
 def literal():
 	return [number]
 
 def expression():
-	return [literal, function_call]
+	return [literal, function_call], _(r"([ \n]+)?")
 
 # WARN: A specification for expression lists has not been set. For all I know, it could end up being separated by fucking greek commas.
 #		...please don't do that.
 def expression_list():
-	return expression, ZeroOrMore(",", expression)
+	return expression, ZeroOrMore(_(r",\s*"), expression)
 
 # WARN: A specification for calling has not been set, but is implied from example code.
 def function_call():
 	return symbol, "(", expression_list, ");"
 
 def language():
-	return ZeroOrMore([expression]), EOF
+	return ZeroOrMore(expression), EOF
 
+# TODO: Include line numbers and positions in exceptions.
 class PyHP_PPH_Visitor(PTNodeVisitor):
-	pass
+	def __init__(self, **kwargs):
+		super().__init__(kwargs)
+
+		self.scopes = [builtins]
+
+	def find_variable(self, variable_name):
+		for scope in self.scopes:
+			if variable_name in scope:
+				return scope
+
+		# WARN: A specification for referencing unknown variables has not been set.
+		raise PyHP_PPH_Exception("Undefined variable {} referenced.".format(variable_name))
+
+	def visit_number(self, node, children):
+		return PyHP_PPH_Number(node.value)
+
+	def visit_expression_list(self, node, children):
+		print(node, children)
+
+	def visit_symbol(self, node, children):
+		return self.find_variable(node.value)[node.value]
+
+	def visit_function_call(self, node, children):
+		print(children)
+		pass
 
 def pyhpp_run_string(code):
-	parser = ParserPython(language)
+	parser = ParserPython(language, skipws=False)
 	parse_tree = parser.parse(code)
-	ast = visit_parse_tree(parse_tree, PyHP_PPH_Visitor())
-
-	print(ast)
+	
+	visit_parse_tree(parse_tree, PyHP_PPH_Visitor())
 
 if __name__ == "__main__":
 	import sys
