@@ -69,21 +69,26 @@ class PyHP_PPH_Visitor(PTNodeVisitor):
 		return PyHP_PPH_Number(node.value)
 
 	def visit_expression_list(self, node, children):
-		for child in node:
-			if type(child) is NonTerminal:
-				print(child)
+		ret = []
+
+		for expression in node:
+			if type(expression) is not Terminal:
+				#import pprint; pprint.PrettyPrinter().pprint(expression)
+				ret.append(visit_parse_tree(expression, self))
+
+		return ret
 
 	def visit_symbol(self, node, children):
 		return self.find_variable(node.value)[node.value]
 
 	def visit_function_call(self, node, children):
-		print(node, children)
+		children.pop(0)(*children[0])
 
 def pyhpp_run_string(code, filename="<string>"):
 	parser = ParserPython(language, ws="\n\r ")
 	parse_tree = parser.parse(code, filename)
 	
-	visit_parse_tree(parse_tree, PyHP_PPH_Visitor(parser=parser))
+	visit_parse_tree(parse_tree, PyHP_PPH_Visitor(parser=parse_tree))
 
 def pyhpp_run_file(filename):
 	with open(filename, "r") as file:
