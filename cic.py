@@ -54,9 +54,8 @@ class PyHP_PPH_Visitor(PTNodeVisitor):
 	def __init__(self, **kwargs):
 		super().__init__(kwargs)
 
-		# There is absolutely no reason we should need a stack, but Arpeggio kept fucking up expression lists.
-		self.stack = []
 		self.scopes = [builtins]
+		self.parser = kwargs["parser"]
 
 	def find_variable(self, variable_name):
 		for scope in self.scopes:
@@ -70,7 +69,9 @@ class PyHP_PPH_Visitor(PTNodeVisitor):
 		return PyHP_PPH_Number(node.value)
 
 	def visit_expression_list(self, node, children):
-		print(node, children)
+		for child in node:
+			if type(child) is NonTerminal:
+				print(child)
 
 	def visit_symbol(self, node, children):
 		return self.find_variable(node.value)[node.value]
@@ -78,25 +79,26 @@ class PyHP_PPH_Visitor(PTNodeVisitor):
 	def visit_function_call(self, node, children):
 		print(node, children)
 
-def pyhpp_run_string(code):
+def pyhpp_run_string(code, filename="<string>"):
 	parser = ParserPython(language, ws="\n\r ")
-	parse_tree = parser.parse(code)
+	parse_tree = parser.parse(code, filename)
 	
-	visit_parse_tree(parse_tree, PyHP_PPH_Visitor())
+	visit_parse_tree(parse_tree, PyHP_PPH_Visitor(parser=parser))
+
+def pyhpp_run_file(filename):
+	with open(filename, "r") as file:
+		content = file.read()
+
+	pyhpp_run_string(content, filename)
 
 if __name__ == "__main__":
 	import sys
 
 	try:
-		source = open(sys.argv[1], "r")
+		pyhpp_run_file(sys.argv[1])
 	except KeyError:
 		print("cic.py filename")
 		sys.exit()
 	except FileNotFoundError:
 		print("Could not find file.")
 		sys.exit()
-
-	code = source.read()
-	source.close()
-
-	pyhpp_run_string(code)
